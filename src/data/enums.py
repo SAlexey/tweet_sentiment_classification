@@ -1,7 +1,7 @@
 import enum
 
 
-class FileType(enum.StrEnum):
+class FileType(enum.Enum):
     """
     The file types
     """
@@ -11,7 +11,7 @@ class FileType(enum.StrEnum):
     PARQUET = "parquet"
 
 
-class Split(enum.StrEnum):
+class Split(enum.Enum):
     """
     The dataset splits
     """
@@ -21,7 +21,7 @@ class Split(enum.StrEnum):
     TEST = "test"
 
 
-class Feature(enum.StrEnum):
+class Feature(enum.Enum):
     """
     The dataset features
     """
