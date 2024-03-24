@@ -1,0 +1,28 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "id": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "product": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "label": {
+      "names": [
+        "negative",
+        "neutral",
+        "positive"
+      ],
+      "_type": "ClassLabel"
+    },
+    "text": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}
