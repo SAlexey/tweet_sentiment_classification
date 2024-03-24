@@ -10,7 +10,7 @@ from datasets.features import ClassLabel
 from omegaconf import DictConfig
 from sklearn.metrics import precision_recall_fscore_support
 
-from src.data.enums import Split
+from src.data.enums import Split, Feature
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -108,6 +108,7 @@ def prepare_dataset(
     padding: bool | str | None = None,
     truncation: bool | None = True,
     max_length: int | None = None,
+    limit: int | None = None,
     **kwargs,
 ):
     """
@@ -119,6 +120,7 @@ def prepare_dataset(
         padding (bool | str | None): The padding strategy.
         truncation (bool | None): The truncation strategy.
         max_length (int | None): The maximum length of the input sequence.
+        limit (int | None): The maximum number of examples to use.
 
     Returns:
         datasets.Dataset: The prepared dataset.
@@ -130,17 +132,21 @@ def prepare_dataset(
     fn_kwargs = {"max_length": max_length, "padding": padding, "truncation": truncation}
     dataset = dataset.map(tokenizer, fn_kwargs=fn_kwargs, **kwargs)
     dataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
-    return dataset
+
+    if limit is None:
+        return dataset
+
+    return dataset.select(range(min(limit, len(dataset))))
 
 
 @hydra.main(config_path="config", config_name="train", version_base="1.3")
 def main(config: DictConfig) -> None:
 
     # Load the dataset
-    dataset = datasets.load_from_disk(config.dataset_path)
+    dataset = hydra.utils.instantiate(config.dataset, _convert_="all")
 
     if isinstance(dataset, datasets.DatasetDict):
-        train_dataset = dataset[Split.TRAIN.value]
+        train_dataset = dataset.get(Split.TRAIN.value)
         eval_dataset = dataset.get(Split.EVAL.value)
         test_dataset = dataset.get(Split.TEST.value)
     else:
@@ -148,15 +154,15 @@ def main(config: DictConfig) -> None:
         eval_dataset = None
         test_dataset = None
 
-    class_label = train_dataset.features[config.label_name]
+    class_label = train_dataset.features[Feature.LABEL.value]
 
     if not isinstance(class_label, ClassLabel):
         raise ValueError(
-            f"Expected `{config.label_name}` for be of type `datasets.features.ClassLabel`, got {type(class_label)}"
+            f"Expected `{Feature.LABEL.value}` for be of type `datasets.features.ClassLabel`, got {type(class_label)}"
         )
 
     num_labels = len(class_label.names)
-    label_counts = pd.Series(train_dataset[config.label_name])
+    label_counts = pd.Series(train_dataset[Feature.LABEL.value])
     label_counts = label_counts.value_counts().sort_index()
     class_weights = label_counts.sum() / label_counts
     class_weights = class_weights.sort_index().tolist()
@@ -165,7 +171,8 @@ def main(config: DictConfig) -> None:
 
     logger.info("Label description:")
     logger.info(f"Number of labels: {num_labels}")
-    logger.info(f"Label counts: {label_counts}")
+    logger.info(f"Label names: {class_label.names}")
+    logger.info(f"Label counts: {label_counts.to_list()}")
     logger.info(f"Class weights: {class_weights}")
     logger.info(f"Label to id: {label2id}")
     logger.info(f"Id to label: {id2label}")
@@ -178,44 +185,12 @@ def main(config: DictConfig) -> None:
     )
     tokenizer = hf.AutoTokenizer.from_pretrained(config.tokenizer_name)
 
-    train_dataset = prepare_dataset(
-        train_dataset,
-        tokenizer=tokenizer,
-        padding=config.padding,
-        truncation=config.truncation,
-        max_length=config.max_length,
-        batched=True,
-        input_columns=config.text_name,
-        desc="Preparing train dataset for training",
-    )
-
-    if eval_dataset:
-        eval_dataset = prepare_dataset(
-            eval_dataset,
-            tokenizer=tokenizer,
-            padding=config.padding,
-            truncation=config.truncation,
-            max_length=config.max_length,
-            batched=True,
-            input_columns=config.text_name,
-            desc="Preparing eval dataset for training",
-        )
-
-    if limit := config.get("limit_eval", None):
-        if isinstance(limit, int):
-            limit = round(limit / len(eval_dataset), 3)
-
-        eval_dataset = eval_dataset.train_test_split(test_size=limit)
-        eval_dataset = eval_dataset["test"]
-
     training_args = hf.TrainingArguments(**config.training_args)
 
     trainer = hf.Trainer(
         model=model,
         tokenizer=tokenizer,
         args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         compute_metrics=compute_metrics,
     )
@@ -228,14 +203,42 @@ def main(config: DictConfig) -> None:
             )
         )
 
-    logger.info("Training model ...")
-    train_results = trainer.train(
-        resume_from_checkpoint=training_args.resume_from_checkpoint
-    )
-    logger.info("Training finished.")
-    logger.info("Saving train metrics ...")
-    trainer.save_metrics(Split.TRAIN.value, train_results.metrics)
-    trainer.log_metrics(Split.TRAIN.value, flatten_dict(train_results.metrics))
+    if training_args.do_train:
+
+        trainer.train_dataset = prepare_dataset(
+            train_dataset,
+            tokenizer=tokenizer,
+            padding=config.padding,
+            truncation=config.truncation,
+            max_length=config.max_length,
+            batched=True,
+            input_columns=Feature.TEXT.value,
+            desc="Preparing train dataset for training",
+        )
+
+        if eval_dataset:
+            eval_dataset = prepare_dataset(
+                eval_dataset,
+                tokenizer=tokenizer,
+                padding=config.padding,
+                truncation=config.truncation,
+                max_length=config.max_length,
+                batched=True,
+                input_columns=Feature.TEXT.value,
+                desc="Preparing eval dataset for training",
+                limit=training_args.max_steps,
+            )
+
+            trainer.eval_dataset = eval_dataset
+
+        logger.info("Training model ...")
+        train_results = trainer.train(
+            resume_from_checkpoint=training_args.resume_from_checkpoint
+        )
+        logger.info("Training finished.")
+        logger.info("Saving train metrics ...")
+        trainer.save_metrics(Split.TRAIN.value, train_results.metrics)
+        trainer.log_metrics(Split.TRAIN.value, flatten_dict(train_results.metrics))
 
     # Save the best model
     if training_args.load_best_model_at_end:
@@ -244,9 +247,25 @@ def main(config: DictConfig) -> None:
         trainer.save_model(config.model_save_path)
 
     if training_args.do_eval:
+
+        if not eval_dataset:
+            eval_dataset = train_dataset
+
+        eval_dataset = prepare_dataset(
+            eval_dataset,
+            tokenizer=tokenizer,
+            padding=config.padding,
+            truncation=config.truncation,
+            max_length=config.max_length,
+            batched=True,
+            input_columns=Feature.TEXT.value,
+            desc="Preparing eval dataset for evaluation",
+            limit=training_args.max_steps,
+        )
+
         # Evaluate the model
         logger.info("Evaluating model ...")
-        eval_metrics = trainer.evaluate()
+        eval_metrics = trainer.evaluate(eval_dataset)
         print(eval_metrics)
         logger.info("Evaluation finished.")
         # Save the evaluation metrics
@@ -256,28 +275,19 @@ def main(config: DictConfig) -> None:
 
     if training_args.do_predict:
 
-        if test_dataset:
-            test_dataset = prepare_dataset(
-                test_dataset,
-                tokenizer=tokenizer,
-                padding=config.padding,
-                truncation=config.truncation,
-                max_length=config.max_length,
-                input_columns=config.text_name,
-                desc="Preparing test dataset for predictions",
-                batched=True,
-            )
-
-        else:
-            test_dataset = eval_dataset
-
         if not test_dataset:
-            logger.error(
-                "No test/eval dataset is provided while `args.do_predict` is set to `True`."
-                "Please provide a test/eval dataset to make predictions."
-                "Exiting ..."
-            )
-            quit()
+            test_dataset = eval_dataset or train_dataset
+
+        test_dataset = prepare_dataset(
+            test_dataset,
+            tokenizer=tokenizer,
+            padding=config.padding,
+            truncation=config.truncation,
+            max_length=config.max_length,
+            input_columns=Feature.TEXT.value,
+            desc="Preparing test dataset for predictions",
+            batched=True,
+        )
 
         # Make predictions
         logger.info("Making predictions ...")

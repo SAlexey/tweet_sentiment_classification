@@ -1,10 +1,11 @@
 defaults:
   - train
-
-# fraction (float) or number of items (int) of the dataset to use for evaluation / testing
-limit_eval: 10
+  - _self_
 
 training_args:
+  do_train: false
+  do_eval: false
+  do_predict: true
   save_steps: 10
   eval_steps: 10
   logging_steps: 10
