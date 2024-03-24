@@ -33,7 +33,7 @@ If make is not installed on your system, you can run the commands in the Makefil
 
 - `python3 -m venv .venv`: Create a Python virtual environment
 - `source .venv/bin/activate`: Activate the virtual environment
-- `pip install -r requirements.txt`: Install the required packages
+- `pip install -r dev-requirements.txt`: Install the required packages
 - `pytest`: Run the tests
 - `python src/data/preprocess.py`: Prepare the data
 - `python src/model/train.py [--config-name dev]`: Train the model (the `--config-name dev` argument is used to train the model on a smaller dataset for development purposes)
