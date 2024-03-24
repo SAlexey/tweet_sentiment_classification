@@ -1,0 +1,50 @@
+####################
+# Dataset
+####################
+dataset_path: data/processed
+text_name: text
+label_name: label
+
+####################
+# Model
+####################
+model_name: cardiffnlp/twitter-roberta-base-sentiment-latest
+model_save_path: models/${model_name}
+
+####################
+# Tokenizer
+####################
+tokenizer_name: ${model_name}
+padding: max_length
+max_length: 512 # setting `null` will use the model's max length
+truncation: true
+
+####################
+# Early stopping
+####################
+early_stopping: true
+early_stopping_patience: 3
+early_stopping_threshold: 0.001
+
+####################
+# Training arguments
+####################
+training_args:
+  output_dir: ${hydra:run.dir}/output # output directory for checkpoints
+  load_best_model_at_end: true
+  resume_from_checkpoint: null
+  overwrite_output_dir: true
+  do_train: true
+  do_eval: true
+  do_predict: true
+  evaluation_strategy: steps
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  num_train_epochs: 3
+  logging_dir: ${hydra:run.dir}/tensorboard
+  report_to: tensorboard
+  logging_steps: 200
+  save_steps: 200
+  eval_steps: 200
+  save_total_limit: 2
+  seed: 42

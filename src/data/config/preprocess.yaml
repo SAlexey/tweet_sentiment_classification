@@ -1,0 +1,23 @@
+dataset:
+  _target_: datasets.load_dataset
+  path: csv
+  data_files:
+    train:
+      - data/raw/training.csv
+    test:
+      - data/raw/validation.csv
+  column_names:
+    - id
+    - product
+    - label
+    - text
+
+# Minimum text length to include in the dataset
+min_text_length: 10
+
+# Labels to exclude from the dataset
+exclude_labels:
+  - irrelevant
+
+# Output directory where the processed data will be saved
+output_path: data/processed

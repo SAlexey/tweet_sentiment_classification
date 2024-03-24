@@ -1,0 +1,8 @@
+accelerate
+datasets
+hydra-core
+safetensors
+tensorboard
+torch
+transformers
+flask

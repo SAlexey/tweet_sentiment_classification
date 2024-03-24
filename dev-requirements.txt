@@ -1,0 +1,19 @@
+# source requirements
+-r src/requirements.txt
+
+# local package
+-e .
+
+# external requirements
+
+black
+click
+flake8
+hydra-core
+jupyter
+nbformat
+plotly
+pytest
+python-dotenv
+scikit-learn
+wordcloud

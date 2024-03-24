@@ -1,0 +1,13 @@
+defaults:
+  - train
+
+# fraction (float) or number of items (int) of the dataset to use for evaluation / testing
+limit_eval: 10
+
+training_args:
+  save_steps: 10
+  eval_steps: 10
+  logging_steps: 10
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  max_steps: 20
