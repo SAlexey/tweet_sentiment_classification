@@ -36,7 +36,7 @@ If make is not installed on your system, you can run the commands in the Makefil
 - `pip install -r requirements.txt`: Install the required packages
 - `pytest`: Run the tests
 - `python src/data/preprocess.py`: Prepare the data
-- `python src/model/train.py`: Train the model
+- `python src/model/train.py [--config-name dev]`: Train the model (the `--config-name dev` argument is used to train the model on a smaller dataset for development purposes)
 - `docker compose up`: Compose and run the docker containers that deploy the model behind an HTTP server (localhost:1234)
 - `docker compose down --rmi all`: Stop and remove the docker containers
 
