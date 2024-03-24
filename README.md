@@ -13,9 +13,9 @@ Use the `Makefile` to run the project.
 
 - Running the commands in the Makefile requires the `make` command to be installed on your system.
 - Before running the commands, make sure to set the PYTHON variabe in the Makefile to the path of the Python executable on your system. The project was developed and tested using Python 3.11.8.
-- In oder to run `make up` and `make down` commands, you need to have Docker installed on your system.
+- In oder to run `make up` and `make down` commands, you need to have Docker installed on your system.w
 - In order to run the `make up` command, you need to have the model saved in the `models` directory. You can train the model using the `make train` command. Or
-  you can run the `notebooks/02_model_training.ipynb` notebook to mock train the model.
+  you can run the `make train-dev` command to mock train the model. See below for more information.
 
 Run the following commands in order to get started with the project:
 
@@ -23,7 +23,7 @@ Run the following commands in order to get started with the project:
 - `make install`: Install the required packages
 - `make test`: Run the tests
 - `make data`: Prepare the data
-- `make train[-dev]`: Train the model (the `train-dev` command is used to train the model on a smaller dataset for development purposes)
+- `make train[-dev]`: Train the model (the `train-dev` command is used to mock-train model, i.e. just save pre-trained model to the `models` directory)
 - `make up`: Compose and run the docker containers that deploy the model behind an HTTP server (localhost:1234)
 - `make down`: Stop and remove the docker containers
 
@@ -36,7 +36,7 @@ If make is not installed on your system, you can run the commands in the Makefil
 - `pip install -r dev-requirements.txt`: Install the required packages
 - `pytest`: Run the tests
 - `python src/data/preprocess.py`: Prepare the data
-- `python src/model/train.py [--config-name dev]`: Train the model (the `--config-name dev` argument is used to train the model on a smaller dataset for development purposes)
+- `python src/model/train.py [--config-name dev]`: Train the model (the `--config-name dev` argument is used to mock-train model, i.e. just save pre-trained model to the `models` directory)
 - `docker compose up`: Compose and run the docker containers that deploy the model behind an HTTP server (localhost:1234)
 - `docker compose down --rmi all`: Stop and remove the docker containers
 
