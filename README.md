@@ -9,8 +9,12 @@ Use the `Makefile` to run the project.
 
 ## Makefile Commands
 
-Before running the commands, make sure to set the PYTHON variabe in the Makefile to the path of the Python executable on your system.
-The project was developed and tested using Python 3.11.8.
+**IMPORTANT**:
+
+- Before running the commands, make sure to set the PYTHON variabe in the Makefile to the path of the Python executable on your system. The project was developed and tested using Python 3.11.8.
+- In oder to run `make up` and `make down` commands, you need to have Docker installed on your system.
+- In order to run the `make up` command, you need to have the model saved in the `models` directory. You can train the model using the `make train` command. Or
+  you can run the `notebooks/02_model_training.ipynb` notebook to mock train the model.
 
 Run the following commands in order to get started with the project:
 
